@@ -65,6 +65,8 @@ func Run(opts *Options) (int, error) {
 		if needWinpty(opts) {
 			return runWinpty(os.Args, opts)
 		}
+	} else if err := opts.lib.checkTerminal(opts); err != nil { // fzf.lib
+		return ExitError, err
 	}
 
 	if err := postProcessOptions(opts); err != nil {
@@ -283,6 +285,7 @@ func Run(opts *Options) (int, error) {
 						}
 						mutex.Lock()
 						if result, _, _ := pattern.MatchItem(&item, false, slab); result.item != nil {
+							opts.lib.accept(&item, opts.Ansi) // fzf.lib
 							opts.Printer(transformer(&item))
 							found = true
 						}
@@ -343,6 +346,7 @@ func Run(opts *Options) (int, error) {
 				chunks:  snapshot,
 				pattern: pattern})
 			for i := 0; i < result.merger.Length(); i++ {
+				opts.lib.accept(result.merger.Get(i).item, opts.Ansi) // fzf.lib
 				opts.Printer(transformer(result.merger.Get(i).item))
 				found = true
 			}
@@ -615,6 +619,7 @@ func Run(opts *Options) (int, error) {
 									}
 									transformer := buildItemTransformer(opts)
 									for i := range count {
+										opts.lib.accept(merger.Get(i).item, opts.Ansi) // fzf.lib
 										opts.Printer(transformer(merger.Get(i).item))
 									}
 									if count == 0 {

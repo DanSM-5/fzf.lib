@@ -94,22 +94,17 @@ func main() {
 		close(input)
 	}()
 
-	var selected []string
-	output := make(chan string)
-	opts.Output = output
-	done := make(chan bool)
-	go func() {
-		for line := range output {
-			selected = append(selected, line)
-		}
-		done <- true
-	}()
+	// Accepted is used below instead of reading the printed lines
+	opts.Printer = func(string) {}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	code, err := fzf.RunContext(ctx, opts)
-	close(output)
-	<-done
+
+	var selected []string
+	for _, e := range opts.Accepted() {
+		selected = append(selected, fruits[e.Index].name+" ("+fruits[e.Index].color+")")
+	}
 
 	switch {
 	case errors.Is(err, context.DeadlineExceeded):

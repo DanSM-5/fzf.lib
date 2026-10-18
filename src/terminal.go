@@ -2274,11 +2274,13 @@ func (t *Terminal) output() bool {
 	if !found {
 		current := t.currentItem()
 		if current != nil {
+			t.lib.accept(current, t.ansi) // fzf.lib
 			t.printer(transform(current))
 			found = true
 		}
 	} else {
 		for _, sel := range t.sortSelected() {
+			t.lib.accept(sel.item, t.ansi) // fzf.lib
 			t.printer(transform(sel.item))
 		}
 	}
