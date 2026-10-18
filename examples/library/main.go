@@ -7,11 +7,15 @@
 // ctrl-b     Go binding (BindBackground) updating the header after a delay
 // ctrl-e     Go binding (BindForeground) using the terminal directly
 // ctrl-x     'become' returned to the caller instead of replacing the process
+// ctrl-z     cancel a running ctrl-b binding ('bg-cancel')
+//
+// The picker quits on its own after one minute (RunContext).
 package main
 
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -56,19 +60,26 @@ func main() {
 		return nil
 	}, fzf.PreviewOnQuery)
 
-	opts.BindFunc("ctrl-f", fzf.BindSync, func(s *fzf.State) string {
+	opts.BindFunc("ctrl-f", fzf.BindSync, func(ctx context.Context, s *fzf.State) string {
 		if s.Current == nil {
 			return ""
 		}
 		return fmt.Sprintf("change-prompt(%s> )", fruits[s.Current.Index].color)
 	})
 
-	opts.BindFunc("ctrl-b", fzf.BindBackground, func(s *fzf.State) string {
-		time.Sleep(500 * time.Millisecond)
-		return fmt.Sprintf("change-header(%d of %d match)", s.MatchCount, s.TotalCount)
+	// Long-running functions should stop when ctx is cancelled: on 'bg-cancel',
+	// when fzf quits, or when the context given to RunContext is done
+	opts.BindFunc("ctrl-b", fzf.BindBackground, func(ctx context.Context, s *fzf.State) string {
+		select {
+		case <-time.After(2 * time.Second):
+			return fmt.Sprintf("change-header(%d of %d match)", s.MatchCount, s.TotalCount)
+		case <-ctx.Done():
+			return ""
+		}
 	})
+	opts.Bind("ctrl-z:bg-cancel+change-header(cancelled)")
 
-	opts.BindFunc("ctrl-e", fzf.BindForeground, func(s *fzf.State) string {
+	opts.BindFunc("ctrl-e", fzf.BindForeground, func(ctx context.Context, s *fzf.State) string {
 		fmt.Print("foreground: press enter to return ")
 		bufio.NewReader(os.Stdin).ReadString('\n')
 		return "change-header(back from foreground)"
@@ -94,11 +105,15 @@ func main() {
 		done <- true
 	}()
 
-	code, err := fzf.Run(opts)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	code, err := fzf.RunContext(ctx, opts)
 	close(output)
 	<-done
 
 	switch {
+	case errors.Is(err, context.DeadlineExceeded):
+		fmt.Println("timed out")
 	case err != nil:
 		fmt.Fprintln(os.Stderr, "error:", err)
 	case code == fzf.ExitBecome:

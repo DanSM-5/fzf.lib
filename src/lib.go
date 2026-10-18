@@ -7,6 +7,7 @@ package fzf
 // upstream stays manageable.
 
 import (
+	"context"
 	"os"
 	"strconv"
 	"strings"
@@ -58,8 +59,12 @@ type libState struct {
 	preview           PreviewFunc
 	become            *BecomeRequest
 
-	mutex sync.Mutex
-	err   error
+	mutex     sync.Mutex
+	err       error
+	ctx       context.Context // given to RunContext, nil for Run
+	run       runContext      // valid during Run
+	terminal  *Terminal
+	cancelled bool // ctx was done before the terminal was attached
 }
 
 // useDefaultCommand is consulted by the reader. Only one Run is expected to
@@ -74,11 +79,12 @@ func defaultCommand() string {
 }
 
 // prepare is called by Run after the options are post-processed. s is nil
-// when the options were not created by Parse.
-func (s *libState) prepare(opts *Options) {
+// when the options were not created by Parse. The returned function is
+// deferred until Run returns.
+func (s *libState) prepare(opts *Options) func() {
 	useDefaultCommand = s == nil || s.useDefaultCommand
 	if s == nil {
-		return
+		return func() {}
 	}
 	// Same heuristic as ParseOptions: the built-in walker produces file paths
 	if s.autoScheme && opts.Input == nil && !opts.hasReloadOrTransformOnStart() && util.IsTty(os.Stdin) {
@@ -86,13 +92,22 @@ func (s *libState) prepare(opts *Options) {
 		_, opts.Criteria, _ = parseScheme(opts.Scheme)
 	}
 	s.become = nil
-	s.setError(nil)
+	s.mutex.Lock()
+	s.err = nil
+	s.terminal = nil
+	s.cancelled = false
+	s.mutex.Unlock()
+	return s.start(opts)
 }
 
+// setError records the error Run returns. The first one wins, as it is the
+// cause of fzf quitting.
 func (s *libState) setError(err error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	s.err = err
+	if s.err == nil {
+		s.err = err
+	}
 }
 
 // error returns the error that made fzf quit, if it was caused by a Go callback

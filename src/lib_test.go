@@ -116,7 +116,7 @@ func TestBindFunc(t *testing.T) {
 	t.Setenv("FZF_DEFAULT_OPTS", "--bind=ctrl-f:first")
 	opts, _ := Parse(LibOptions{UseDefaultOpts: true})
 	called := false
-	if err := opts.BindFunc("ctrl-f,f5", BindBackground, func(*State) string { called = true; return "" }); err != nil {
+	if err := opts.BindFunc("ctrl-f,f5", BindBackground, func(context.Context, *State) string { called = true; return "" }); err != nil {
 		t.Fatal(err)
 	}
 	for _, evt := range []tui.Event{tui.CtrlF.AsEvent(), tui.F5.AsEvent()} {
@@ -125,7 +125,7 @@ func TestBindFunc(t *testing.T) {
 			t.Errorf("%v: %+v", evt, acts)
 		}
 	}
-	opts.lib.funcs[0](nil)
+	opts.lib.funcs[0](context.Background(), nil)
 	if !called {
 		t.Error("function not registered")
 	}
@@ -136,14 +136,14 @@ func TestBindFunc(t *testing.T) {
 		t.Error("Go bindings should not be recorded as the last action")
 	}
 
-	if err := opts.BindFunc("no-such-key", BindSync, func(*State) string { return "" }); err == nil {
+	if err := opts.BindFunc("no-such-key", BindSync, func(context.Context, *State) string { return "" }); err == nil {
 		t.Error("expected an error for an invalid key")
 	}
-	if err := opts.BindFunc("ctrl-g", BindMode(42), func(*State) string { return "" }); err == nil {
+	if err := opts.BindFunc("ctrl-g", BindMode(42), func(context.Context, *State) string { return "" }); err == nil {
 		t.Error("expected an error for an invalid mode")
 	}
 	cli, _ := ParseOptions(false, nil)
-	if err := cli.BindFunc("ctrl-g", BindSync, func(*State) string { return "" }); err == nil {
+	if err := cli.BindFunc("ctrl-g", BindSync, func(context.Context, *State) string { return "" }); err == nil {
 		t.Error("expected an error for Options not created by Parse")
 	}
 }
