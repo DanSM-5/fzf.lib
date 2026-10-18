@@ -18,7 +18,8 @@ import (
 // is displayed while it is being written.
 //
 // ctx is cancelled when the preview is no longer needed, e.g. when the cursor
-// moves to another item; long-running functions should return then. A
+// moves to another item or fzf quits, and when the context given to
+// RunContext is done; long-running functions should return then. A
 // returned error, or a panic, is displayed in the preview window.
 type PreviewFunc func(ctx context.Context, state *State, w io.Writer) error
 
@@ -97,7 +98,7 @@ func (t *Terminal) newPreviewProcess(template string, command string, env []stri
 		done: make(chan struct{}),
 	}
 	p.reader, p.writer = io.Pipe()
-	p.ctx, p.cancel = context.WithCancel(context.Background())
+	p.ctx, p.cancel = context.WithCancel(t.lib.context(false))
 	return p
 }
 

@@ -70,7 +70,7 @@ func Run(opts *Options) (int, error) {
 	if err := postProcessOptions(opts); err != nil {
 		return ExitError, err
 	}
-	opts.lib.prepare(opts) // fzf.lib
+	defer opts.lib.prepare(opts)() // fzf.lib: returns the cleanup for when Run returns
 
 	defer util.RunAtExitFuncs()
 

@@ -35,14 +35,18 @@ opts.SetPreviewFunc(func(ctx context.Context, s *fzf.State, w io.Writer) error {
 }, fzf.PreviewOnFocus)
 
 // Go bindings return follow-up actions in the --bind syntax
-opts.BindFunc("ctrl-f", fzf.BindSync, func(s *fzf.State) string {
+opts.BindFunc("ctrl-f", fzf.BindSync, func(ctx context.Context, s *fzf.State) string {
     return "change-prompt(filtered> )"
 })
 
 // Regular string bindings are still available
 opts.Bind("ctrl-r:reload(ls)+first")
 
-code, err := fzf.Run(opts)
+// Quit the picker after a minute; or use fzf.Run(opts) without a context
+ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+defer cancel()
+code, err := fzf.RunContext(ctx, opts)
+if errors.Is(err, context.DeadlineExceeded) { /* code == fzf.ExitInterrupt */ }
 ```
 
 | Bind mode        | Runs                                         | Like            |
@@ -50,6 +54,23 @@ code, err := fzf.Run(opts)
 | `BindSync`       | on the event loop; the UI waits for it       | `transform`     |
 | `BindBackground` | in a goroutine; actions applied on return    | `bg-transform`  |
 | `BindForeground` | with the UI suspended; may use the terminal  | `execute`       |
+
+Cancellation
+------------
+
+The `ctx` given to Go bindings and the preview function is cancelled when:
+
+- fzf quits, or the context given to `RunContext` is done (all functions)
+- `bg-cancel` is triggered (`BindBackground` functions)
+- the preview is no longer needed, e.g. the cursor moved (preview function)
+
+The result of a cancelled binding is discarded. Functions that ignore `ctx`
+cannot be stopped, but fzf does not wait for them, except for `BindSync` and
+`BindForeground`, which hold the interface until they return.
+
+When the context of `RunContext` is done, it returns `ExitInterrupt` and
+`ctx.Err()`, and `Options.Input` is no longer read, so the producer should also
+stop on `ctx`. `--filter` is not interrupted.
 
 Differences from the CLI when using `Parse`:
 

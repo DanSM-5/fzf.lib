@@ -1404,6 +1404,7 @@ func NewTerminal(opts *Options, eventBox *util.EventBox, executor *util.Executor
 		t.eventChan <- tui.Start.AsEvent()
 	}
 
+	t.lib.attach(&t) // fzf.lib
 	return &t, nil
 }
 
@@ -7452,6 +7453,7 @@ func (t *Terminal) Loop() error {
 				})
 			case actBgCancel:
 				t.bgVersion++
+				t.lib.cancelBackground() // fzf.lib
 				t.runningCmds.ForEach(func(cmd *runningCmd) {
 					util.KillCommand(cmd.cmd)
 				})
