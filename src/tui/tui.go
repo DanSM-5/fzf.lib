@@ -6,7 +6,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/junegunn/fzf/src/util"
+	"github.com/DanSM-5/fzf.lib/src/util"
 	"github.com/rivo/uniseg"
 )
 

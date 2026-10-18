@@ -5,8 +5,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/junegunn/fzf/src/algo"
-	"github.com/junegunn/fzf/src/util"
+	"github.com/DanSM-5/fzf.lib/src/algo"
+	"github.com/DanSM-5/fzf.lib/src/util"
 )
 
 var slab *util.Slab

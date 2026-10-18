@@ -3,7 +3,7 @@ package fzf
 import (
 	"math"
 
-	"github.com/junegunn/fzf/src/util"
+	"github.com/DanSM-5/fzf.lib/src/util"
 )
 
 type transformed struct {

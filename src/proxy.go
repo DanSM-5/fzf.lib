@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/junegunn/fzf/src/tui"
-	"github.com/junegunn/fzf/src/util"
+	"github.com/DanSM-5/fzf.lib/src/tui"
+	"github.com/DanSM-5/fzf.lib/src/util"
 )
 
 const becomeSuffix = ".become"

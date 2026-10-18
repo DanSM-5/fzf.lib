@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"strings"
 
-	fzf "github.com/junegunn/fzf/src"
-	"github.com/junegunn/fzf/src/protector"
+	fzf "github.com/DanSM-5/fzf.lib/src"
+	"github.com/DanSM-5/fzf.lib/src/protector"
 )
 
 var version = "0.74"

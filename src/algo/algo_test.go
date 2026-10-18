@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/junegunn/fzf/src/util"
+	"github.com/DanSM-5/fzf.lib/src/util"
 )
 
 func init() {

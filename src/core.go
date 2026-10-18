@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/junegunn/fzf/src/tui"
-	"github.com/junegunn/fzf/src/util"
+	"github.com/DanSM-5/fzf.lib/src/tui"
+	"github.com/DanSM-5/fzf.lib/src/util"
 )
 
 /*
@@ -53,7 +53,8 @@ func buildItemTransformer(opts *Options) func(*Item) string {
 
 // Run starts fzf
 func Run(opts *Options) (int, error) {
-	if opts.Filter == nil {
+	// fzf.lib: re-executing os.Args (tmux, zellij, winpty) would re-run the host program
+	if opts.Filter == nil && opts.lib == nil {
 		if opts.useTmux() {
 			return runTmux(os.Args, opts)
 		}
@@ -69,6 +70,7 @@ func Run(opts *Options) (int, error) {
 	if err := postProcessOptions(opts); err != nil {
 		return ExitError, err
 	}
+	opts.lib.prepare(opts) // fzf.lib
 
 	defer util.RunAtExitFuncs()
 

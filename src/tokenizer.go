@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/junegunn/fzf/src/util"
+	"github.com/DanSM-5/fzf.lib/src/util"
 )
 
 const rangeEllipsis = 0

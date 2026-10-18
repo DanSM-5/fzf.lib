@@ -1,4 +1,4 @@
-module github.com/junegunn/fzf
+module github.com/DanSM-5/fzf.lib
 
 require (
 	github.com/charlievieth/fastwalk v1.0.14

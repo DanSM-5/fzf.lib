@@ -6,8 +6,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/junegunn/fzf/src/algo"
-	"github.com/junegunn/fzf/src/tui"
+	"github.com/DanSM-5/fzf.lib/src/algo"
+	"github.com/DanSM-5/fzf.lib/src/tui"
 )
 
 type ansiOffset struct {

@@ -89,10 +89,10 @@ all: target/$(BINARY)
 
 test: $(SOURCES)
 	SHELL=/bin/sh GOOS= $(GO) test -v -tags "$(TAGS)" \
-				github.com/junegunn/fzf/src \
-				github.com/junegunn/fzf/src/algo \
-				github.com/junegunn/fzf/src/tui \
-				github.com/junegunn/fzf/src/util
+				github.com/DanSM-5/fzf.lib/src \
+				github.com/DanSM-5/fzf.lib/src/algo \
+				github.com/DanSM-5/fzf.lib/src/tui \
+				github.com/DanSM-5/fzf.lib/src/util
 
 # Run in a separate tmux server without user config, like CI (80x24)
 itest:
