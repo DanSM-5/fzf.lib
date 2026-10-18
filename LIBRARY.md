@@ -89,8 +89,27 @@ Merging from upstream
 Library code lives in `src/lib*.go`. Upstream files only contain small hooks,
 each marked with a `fzf.lib` comment (`grep -rn 'fzf.lib' src`).
 
+### Setup after cloning
+
+Git configuration is not part of the repository, so run this once in every
+new clone before merging:
+
 ```sh
-git remote add upstream https://github.com/junegunn/fzf.git  # once
+git remote add upstream https://github.com/junegunn/fzf.git
+git config merge.ours.driver true
+```
+
+`.gitattributes` marks files this fork rewrote, such as `README.md`, with
+`merge=ours`, so that a merge keeps our version even when upstream changed
+them. The `ours` driver is not built into git; the `git config` line defines
+it as a no-op command (`true`) that leaves our file as it is. Without it, git
+silently merges these files normally, which leads to conflicts.
+
+To keep another file on merges, add it to `.gitattributes`.
+
+### Merging
+
+```sh
 git fetch upstream && git merge upstream/master
 scripts/rewrite-module-path.sh   # new upstream files import github.com/junegunn/fzf
 go build ./... && go test ./...

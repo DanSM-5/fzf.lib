@@ -1,0 +1,3 @@
+# fzf.lib: files rewritten for the library, keep our version on upstream merges.
+# Requires the "ours" merge driver, see "Merging from upstream" in LIBRARY.md.
+README.md merge=ours
