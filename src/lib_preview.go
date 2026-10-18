@@ -125,6 +125,16 @@ func (p *previewProcess) Start() error {
 		}
 		p.writer.Close()
 	}()
+	// The preview loop reads until the end of the output before calling Wait.
+	// Unblock it when ctx is done, e.g. when fzf quits, even if the function
+	// ignores ctx.
+	go func() {
+		select {
+		case <-p.done:
+		case <-p.ctx.Done():
+			p.reader.CloseWithError(context.Canceled)
+		}
+	}()
 	return nil
 }
 
