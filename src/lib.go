@@ -60,6 +60,7 @@ type libState struct {
 	become            *BecomeRequest
 
 	mutex     sync.Mutex
+	accepted  []Entry // items printed to the output, see Accepted
 	err       error
 	ctx       context.Context // given to RunContext, nil for Run
 	run       runContext      // valid during Run
@@ -94,6 +95,7 @@ func (s *libState) prepare(opts *Options) func() {
 	s.become = nil
 	s.mutex.Lock()
 	s.err = nil
+	s.accepted = nil
 	s.terminal = nil
 	s.cancelled = false
 	s.mutex.Unlock()

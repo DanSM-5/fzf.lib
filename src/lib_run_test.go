@@ -46,8 +46,11 @@ func TestLibHelper(t *testing.T) {
 	}
 
 	args := []string{}
-	if scenario == "deferred" {
+	switch scenario {
+	case "deferred":
 		args = append(args, "--sync")
+	case "accept", "reuse":
+		args = append(args, "--multi", "--layout=reverse", "--accept-nth={n}")
 	}
 	opts, err := Parse(LibOptions{Args: args})
 	if err != nil {
@@ -105,6 +108,19 @@ func TestLibHelper(t *testing.T) {
 
 	start := time.Now()
 	code, err := RunContext(ctx, opts)
+	if scenario == "accept" || scenario == "reuse" {
+		note(fmt.Sprintf("accepted %v", opts.Accepted()))
+	}
+	if scenario == "reuse" && err == nil {
+		// The same Options for another Run, with a new input
+		input := make(chan string, 2)
+		input <- "four"
+		input <- "five"
+		close(input)
+		opts.Input = input
+		code, err = RunContext(ctx, opts)
+		note(fmt.Sprintf("accepted %v", opts.Accepted()))
+	}
 	result := libRunResult{Code: code, ElapsedMs: time.Since(start).Milliseconds()}
 	if err != nil {
 		result.Err = err.Error()
@@ -286,4 +302,47 @@ func TestBackgroundBindingResult(t *testing.T) {
 	if result.Code != ExitOk || result.Err != "" || strings.Join(result.Notes, ",") != "bg one" {
 		t.Errorf("result: %+v", result)
 	}
+}
+
+func TestAcceptedEntries(t *testing.T) {
+	s := runLibScenario(t, "accept")
+	s.waitForScreen("3/3")
+	s.keys("Tab")
+	s.keys("Tab")
+	s.waitForScreen("(2)")
+	s.keys("Enter")
+	result := s.wait()
+	if result.Code != ExitOk || result.Err != "" {
+		t.Errorf("result: %+v", result)
+	}
+	if want := "accepted [{0 one} {1 two}]"; !containsNote(result.Notes, want) {
+		t.Errorf("notes: %v, want %q", result.Notes, want)
+	}
+}
+
+func TestReuseOptions(t *testing.T) {
+	s := runLibScenario(t, "reuse")
+	s.waitForScreen("3/3")
+	s.keys("Tab")
+	s.keys("Enter")
+	s.waitForScreen("2/2")
+	s.keys("Down")
+	s.keys("Enter")
+	result := s.wait()
+	if result.Code != ExitOk || result.Err != "" {
+		t.Errorf("result: %+v", result)
+	}
+	want := []string{"accepted [{0 one}]", "accepted [{1 five}]"}
+	if strings.Join(result.Notes, ",") != strings.Join(want, ",") {
+		t.Errorf("notes: %v, want %v", result.Notes, want)
+	}
+}
+
+func containsNote(notes []string, note string) bool {
+	for _, n := range notes {
+		if n == note {
+			return true
+		}
+	}
+	return false
 }
