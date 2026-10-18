@@ -13,7 +13,7 @@ package algo
 import (
 	"testing"
 
-	"github.com/junegunn/fzf/src/util"
+	"github.com/DanSM-5/fzf.lib/src/util"
 )
 
 // One char of each ASCII class that affects scoring: lower, upper, delimiter,

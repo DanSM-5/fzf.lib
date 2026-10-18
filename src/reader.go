@@ -13,8 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/DanSM-5/fzf.lib/src/util"
 	"github.com/charlievieth/fastwalk"
-	"github.com/junegunn/fzf/src/util"
 )
 
 // Reader reads from command or standard input
@@ -136,7 +136,7 @@ func (r *Reader) ReadSource(inputChan chan string, roots []string, opts walkerOp
 	} else if len(initCmd) > 0 {
 		success = r.readFromCommand(initCmd, initEnv, signalReady)
 	} else if util.IsTty(os.Stdin) {
-		cmd := os.Getenv("FZF_DEFAULT_COMMAND")
+		cmd := defaultCommand() // fzf.lib
 		if len(cmd) == 0 {
 			signalReady()
 			success = r.readFiles(roots, opts, ignores)

@@ -6,7 +6,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/junegunn/fzf/src/util"
+	"github.com/DanSM-5/fzf.lib/src/util"
 )
 
 func assert(t *testing.T, cond bool, msg ...string) {

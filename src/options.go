@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/junegunn/fzf/src/algo"
-	"github.com/junegunn/fzf/src/tui"
-	"github.com/junegunn/fzf/src/util"
+	"github.com/DanSM-5/fzf.lib/src/algo"
+	"github.com/DanSM-5/fzf.lib/src/tui"
+	"github.com/DanSM-5/fzf.lib/src/util"
 
 	"github.com/junegunn/go-shellwords"
 	"github.com/rivo/uniseg"
@@ -583,6 +583,7 @@ type Options struct {
 	Tmux              *tmuxOptions
 	ForceTtyIn        bool
 	ProxyScript       string
+	lib               *libState // fzf.lib: non-nil when created by Parse
 	Bash              bool
 	Zsh               bool
 	Fish              bool
@@ -3903,12 +3904,16 @@ func parseShellWords(str string) ([]string, error) {
 
 // ParseOptions parses command-line options
 func ParseOptions(useDefaults bool, args []string) (*Options, error) {
-	opts := defaultOptions()
+	return parseOptionsWith(defaultOptions(), useDefaults, useDefaults, args)
+}
+
+// fzf.lib: $FZF_DEFAULT_OPTS_FILE and $FZF_DEFAULT_OPTS can be enabled independently
+func parseOptionsWith(opts *Options, useDefaultOptsFile bool, useDefaultOpts bool, args []string) (*Options, error) {
 	index := 0
 
-	if useDefaults {
+	if useDefaultOptsFile || useDefaultOpts {
 		// 1. Options from $FZF_DEFAULT_OPTS_FILE
-		if path := os.Getenv("FZF_DEFAULT_OPTS_FILE"); path != "" {
+		if path := os.Getenv("FZF_DEFAULT_OPTS_FILE"); useDefaultOptsFile && path != "" {
 			bytes, err := os.ReadFile(path)
 			if err != nil {
 				return nil, errors.New("$FZF_DEFAULT_OPTS_FILE: " + err.Error())
@@ -3927,6 +3932,9 @@ func ParseOptions(useDefaults bool, args []string) (*Options, error) {
 
 		// 2. Options from $FZF_DEFAULT_OPTS string
 		words, parseErr := parseShellWords(os.Getenv("FZF_DEFAULT_OPTS"))
+		if !useDefaultOpts {
+			words, parseErr = nil, nil
+		}
 		if parseErr != nil {
 			return nil, errors.New("$FZF_DEFAULT_OPTS: " + parseErr.Error())
 		}
@@ -3954,7 +3962,10 @@ func ParseOptions(useDefaults bool, args []string) (*Options, error) {
 			//   1. explicitly set --scheme=default,
 			//   2. or replace $FZF_DEFAULT_COMMAND with an equivalent 'start:reload'
 			//      binding, which is the new preferred way.
-			if !opts.hasReloadOrTransformOnStart() && util.IsTty(os.Stdin) {
+			// fzf.lib: in library mode the input source is only known when Run is called
+			if opts.lib != nil {
+				opts.lib.autoScheme = true
+			} else if !opts.hasReloadOrTransformOnStart() && util.IsTty(os.Stdin) {
 				opts.Scheme = "path"
 			}
 			_, opts.Criteria, _ = parseScheme(opts.Scheme)

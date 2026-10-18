@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/junegunn/fzf/src/tui"
+	"github.com/DanSM-5/fzf.lib/src/tui"
 )
 
 // The flag group of new-pane usage includes -A (tmux 3.8 or above)

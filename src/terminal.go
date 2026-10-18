@@ -25,8 +25,8 @@ import (
 
 	"github.com/rivo/uniseg"
 
-	"github.com/junegunn/fzf/src/tui"
-	"github.com/junegunn/fzf/src/util"
+	"github.com/DanSM-5/fzf.lib/src/tui"
+	"github.com/DanSM-5/fzf.lib/src/util"
 )
 
 // import "github.com/pkg/profile"
@@ -476,6 +476,7 @@ type Terminal struct {
 	clickFooterLine      int
 	clickFooterColumn    int
 	proxyScript          string
+	lib                  *libState // fzf.lib
 	setNativeLabel       func(string)
 	numLinesCache        map[int32]numLinesCacheValue
 	raw                  bool
@@ -751,10 +752,16 @@ const (
 )
 
 func (a actionType) Name() string {
+	if name, ok := libActionName(a); ok { // fzf.lib
+		return name
+	}
 	return util.ToKebabCase(a.String()[3:])
 }
 
 func processExecution(action actionType) bool {
+	if isLibAction(action) { // fzf.lib
+		return true
+	}
 	switch action {
 	case actTransform,
 		actTransformBorderLabel,
@@ -1154,6 +1161,7 @@ func NewTerminal(opts *Options, eventBox *util.EventBox, executor *util.Executor
 		printer:            opts.Printer,
 		printsep:           opts.PrintSep,
 		proxyScript:        opts.ProxyScript,
+		lib:                opts.lib,
 		setNativeLabel:     nativeLabelSetter(),
 		merger:             em,
 		passMerger:         em,
@@ -6444,11 +6452,10 @@ func (t *Terminal) Loop() error {
 				// We don't display preview window if no match
 				if items[0] != nil {
 					command, tempFiles := t.replacePlaceholder(commandTemplate, false, query, items)
-					cmd := t.executor.ExecCommand(command, true)
-					cmd.Env = env
+					// fzf.lib: either the shell command or the Go preview function
+					cmd := t.newPreviewProcess(commandTemplate, command, env, items)
 
 					out, _ := cmd.StdoutPipe()
-					cmd.Stderr = cmd.Stdout
 					reader := bufio.NewReader(out)
 					eofChan := make(chan bool)
 					finishChan := make(chan bool, 1)
@@ -6529,7 +6536,7 @@ func (t *Terminal) Loop() error {
 									t.reqBox.Set(reqPreviewDelayed, version)
 								case immediately := <-t.killChan:
 									if immediately {
-										util.KillCommand(cmd)
+										cmd.Kill()
 										t.killedChan <- true
 									} else {
 										// We can immediately kill a long-running preview program
@@ -6541,7 +6548,7 @@ func (t *Terminal) Loop() error {
 										timer := time.NewTimer(delay)
 										select {
 										case <-timer.C:
-											util.KillCommand(cmd)
+											cmd.Kill()
 										case <-finishChan:
 										}
 										timer.Stop()
@@ -6800,7 +6807,7 @@ func (t *Terminal) Loop() error {
 		t.running.Set(false)
 		t.killPreview()
 		cancel()
-		t.eventBox.Set(EvtQuit, quitSignal{code, nil})
+		t.eventBox.Set(EvtQuit, quitSignal{code, t.lib.error()}) // fzf.lib
 	}()
 
 	looping := true
@@ -7129,6 +7136,9 @@ func (t *Terminal) Loop() error {
 						data := strings.Join(append([]string{command}, t.environ()...), "\x00")
 						os.WriteFile(t.proxyScript+becomeSuffix, []byte(data), 0600)
 						req(reqBecome)
+					} else if t.lib != nil { // fzf.lib: hand the command back to the caller
+						t.lib.become = &BecomeRequest{Command: command, Env: t.environ()}
+						req(reqBecome)
 					} else {
 						t.executor.Become(t.ttyin, t.environ(), command)
 					}
@@ -7424,6 +7434,12 @@ func (t *Terminal) Loop() error {
 					if t.pborder != nil {
 						t.previewLabel, t.previewLabelLen = t.ansiLabelPrinter(label, &tui.ColPreviewLabel, false)
 						req(reqRedrawPreviewLabel)
+					}
+				})
+			case actLibFunc, actLibFuncBg, actLibFuncFg: // fzf.lib
+				t.runLibFunc(*a, func(body string) {
+					if actions, err := parseSingleActionList(strings.Trim(body, "\r\n"), event.Printable()); err == nil {
+						doActions(actions)
 					}
 				})
 			case actTransform, actBgTransform:

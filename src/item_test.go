@@ -3,7 +3,7 @@ package fzf
 import (
 	"testing"
 
-	"github.com/junegunn/fzf/src/util"
+	"github.com/DanSM-5/fzf.lib/src/util"
 )
 
 func TestStringPtr(t *testing.T) {

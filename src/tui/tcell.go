@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/DanSM-5/fzf.lib/src/util"
 	"github.com/gdamore/tcell/v2"
-	"github.com/junegunn/fzf/src/util"
 
 	"github.com/rivo/uniseg"
 )
