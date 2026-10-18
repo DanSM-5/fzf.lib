@@ -240,3 +240,30 @@ func TestRunContextRestoresInput(t *testing.T) {
 	}
 	cleanup()
 }
+
+func TestPreviewIgnoringContextReleasesOutput(t *testing.T) {
+	// A function that ignores ctx must not keep the preview loop reading its
+	// output after Run returns
+	s := &libState{preview: func(context.Context, *State, io.Writer) error {
+		select {}
+	}}
+	cleanup := s.start(&Options{})
+	term := &Terminal{lib: s}
+	item := newItem("foo")
+	p := term.newPreviewProcess(libPreviewPrefix, "", nil, [3][]*Item{{item}, {item}, nil})
+	out, _ := p.StdoutPipe()
+	p.Start()
+
+	done := make(chan bool)
+	go func() {
+		io.ReadAll(out)
+		p.Wait()
+		done <- true
+	}()
+	cleanup() // Run returns
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("the output should end when Run returns")
+	}
+}
